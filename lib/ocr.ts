@@ -94,26 +94,44 @@ export async function runOcr(
   // Import dinamico: tesseract.js so deve rodar no navegador.
   const { createWorker } = await import("tesseract.js");
 
-  // Sem workerPath/corePath/langPath customizados de proposito: o
-  // Tesseract.js v5 ja vem com defaults apontando pro jsDelivr CDN
-  // (https://cdn.jsdelivr.net/npm/tesseract.js-core@.../...) - deixar ele
-  // resolver isso sozinho elimina qualquer risco de eu apontar pra uma
-  // URL/versao incompativel na mao.
-  let worker;
-  try {
-    worker = await (createWorker as any)(languageCode, 1, {
+  // 1a tentativa: worker + core AUTO-HOSPEDADOS no mesmo dominio do site
+  // (copiados pra /public/tesseract no build, ver scripts/copy-tesseract-assets.js).
+  // Isso evita depender da CDN externa (jsDelivr) pra esses arquivos pesados,
+  // que e a causa mais provavel do "Failed to fetch" intermitente em redes
+  // de celular instaveis.
+  //
+  // 2a tentativa (fallback automatico): se o auto-hospedado falhar por
+  // qualquer motivo (ex: build antigo sem os arquivos), tenta de novo
+  // usando o CDN externo como nos testes anteriores.
+  async function createTesseractWorker(useLocal: boolean) {
+    const options: Record<string, any> = {
       logger: (m: any) => {
         if (onProgress && m?.status) {
           onProgress(m.status, typeof m.progress === "number" ? m.progress : 0);
         }
       },
-    });
-  } catch (err: any) {
-    throw new Error(
-      `Nao foi possivel iniciar o OCR (download do worker/idioma "${languageCode}" falhou): ${
-        err?.message ?? err
-      }`
-    );
+    };
+    if (useLocal) {
+      options.workerPath = "/tesseract/worker.min.js";
+      options.corePath = "/tesseract/core";
+    }
+    return (createWorker as any)(languageCode, 1, options);
+  }
+
+  let worker;
+  try {
+    worker = await createTesseractWorker(true);
+  } catch (localErr: any) {
+    try {
+      worker = await createTesseractWorker(false);
+    } catch (cdnErr: any) {
+      throw new Error(
+        `Nao foi possivel iniciar o OCR para o idioma "${languageCode}" ` +
+          `(falhou tanto local quanto via CDN externo): ${
+            cdnErr?.message ?? cdnErr
+          }`
+      );
+    }
   }
 
   try {
