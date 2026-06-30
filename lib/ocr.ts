@@ -94,39 +94,27 @@ export async function runOcr(
   // Import dinamico: tesseract.js so deve rodar no navegador.
   const { createWorker } = await import("tesseract.js");
 
-  // CORRECAO "Failed to fetch" na Vercel:
-  // Por padrao, o Tesseract.js tenta resolver caminhos RELATIVOS para o
-  // worker JS e os modelos .traineddata. Em producao (Vercel/CDN) esses
-  // caminhos relativos nao existem e o fetch falha. A solucao e apontar
-  // EXPLICITAMENTE para os arquivos no jsDelivr CDN.
-  //
-  //   workerPath → script que roda dentro do Web Worker
-  //   corePath   → binario WASM do Tesseract (SIMD + LSTM, ~6 MB)
-  //   langPath   → pasta que contem os .traineddata de cada idioma
-  //                (baixados sob demanda, ficam em cache no navegador)
-  const worker = await (createWorker as any)(languageCode, 1, {
-    workerPath:
-      "https://cdn.jsdelivr.net/npm/tesseract.js@v5.1.1/dist/worker.min.js",
-    // IMPORTANTE: corePath deve apontar para um DIRETORIO (nao um arquivo
-    // .wasm.js especifico) - o Tesseract.js escolhe automaticamente a
-    // variante certa (com/sem SIMD) pro navegador do usuario. Apontar pra
-    // um arquivo especifico e a causa mais comum do "Failed to fetch".
-    corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1",
-    langPath: "https://tessdata.projectnaptha.com/4.0.0",
-    logger: (m: any) => {
-      if (onProgress && m?.status) {
-        onProgress(m.status, typeof m.progress === "number" ? m.progress : 0);
-      }
-    },
-  }).catch((err: any) => {
-    // Relança com mais contexto: "Failed to fetch" sozinho nao diz qual
-    // arquivo falhou. Isso aparece no painel "erro" da imagem na fila.
+  // Sem workerPath/corePath/langPath customizados de proposito: o
+  // Tesseract.js v5 ja vem com defaults apontando pro jsDelivr CDN
+  // (https://cdn.jsdelivr.net/npm/tesseract.js-core@.../...) - deixar ele
+  // resolver isso sozinho elimina qualquer risco de eu apontar pra uma
+  // URL/versao incompativel na mao.
+  let worker;
+  try {
+    worker = await (createWorker as any)(languageCode, 1, {
+      logger: (m: any) => {
+        if (onProgress && m?.status) {
+          onProgress(m.status, typeof m.progress === "number" ? m.progress : 0);
+        }
+      },
+    });
+  } catch (err: any) {
     throw new Error(
-      `Falha ao iniciar o OCR (worker/core/lang do Tesseract.js): ${
+      `Nao foi possivel iniciar o OCR (download do worker/idioma "${languageCode}" falhou): ${
         err?.message ?? err
       }`
     );
-  });
+  }
 
   try {
     const result = await (worker.recognize as any)(
