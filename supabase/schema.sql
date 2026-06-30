@@ -1,5 +1,13 @@
 -- BubbleBlaster - schema do Supabase
 -- Rode este arquivo inteiro uma vez em: Supabase > SQL Editor > New query
+--
+-- IMPORTANTE (corrige o erro de login em producao):
+-- Vá em Authentication > URL Configuration e:
+--   1. Defina "Site URL" como a URL da sua Vercel (ex: https://seu-app.vercel.app)
+--   2. Em "Redirect URLs", adicione tambem essa mesma URL (e http://localhost:3000
+--      se quiser continuar testando local)
+-- Sem isso, o Supabase recusa o redirect e o link/fluxo de auth volta para
+-- o Site URL antigo (geralmente localhost), causando ERR_CONNECTION_REFUSED.
 
 -- 1. Tabela que guarda o historico de paginas processadas
 create table if not exists public.blasts (
