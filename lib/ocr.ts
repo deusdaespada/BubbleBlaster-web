@@ -8,10 +8,6 @@ interface RawWord {
   bbox: { x0: number; y0: number; x1: number; y1: number };
 }
 
-// Tenta extrair "linhas" (equivalente ao bloco de texto que o EasyOCR
-// detecta por balao) a partir do retorno do tesseract.js. Diferentes
-// versoes da lib expoem isso em data.blocks[].paragraphs[].lines[],
-// em data.lines, ou apenas em data.words - por isso o fallback em cascata.
 function extractLines(data: any): TextBox[] {
   const lines: TextBox[] = [];
 
@@ -50,8 +46,6 @@ function extractLines(data: any): TextBox[] {
     if (lines.length > 0) return lines;
   }
 
-  // Fallback final: agrupa palavras em "linhas" por proximidade vertical,
-  // parecido com a logica de interseccao usada no util.py original.
   if (Array.isArray(data?.words) && data.words.length > 0) {
     const words: RawWord[] = data.words
       .filter((w: any) => w.text && w.text.trim())
@@ -97,13 +91,25 @@ export async function runOcr(
   languageCode: string,
   onProgress?: OcrProgressCallback
 ): Promise<TextBox[]> {
-  // Import dinamico: tesseract.js so deve rodar no navegador. Importar no
-  // topo do arquivo faria o Next.js tentar carrega-lo durante o build/SSR
-  // (esta pagina e "use client", mas ainda passa por renderizacao no
-  // servidor), o que quebraria o build.
+  // Import dinamico: tesseract.js so deve rodar no navegador.
   const { createWorker } = await import("tesseract.js");
 
+  // CORRECAO "Failed to fetch" na Vercel:
+  // Por padrao, o Tesseract.js tenta resolver caminhos RELATIVOS para o
+  // worker JS e os modelos .traineddata. Em producao (Vercel/CDN) esses
+  // caminhos relativos nao existem e o fetch falha. A solucao e apontar
+  // EXPLICITAMENTE para os arquivos no jsDelivr CDN.
+  //
+  //   workerPath → script que roda dentro do Web Worker
+  //   corePath   → binario WASM do Tesseract (SIMD + LSTM, ~6 MB)
+  //   langPath   → pasta que contem os .traineddata de cada idioma
+  //                (baixados sob demanda, ficam em cache no navegador)
   const worker = await (createWorker as any)(languageCode, 1, {
+    workerPath:
+      "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
+    corePath:
+      "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js",
+    langPath: "https://tessdata.projectnaptha.com/4.0.0",
     logger: (m: any) => {
       if (onProgress && m?.status) {
         onProgress(m.status, typeof m.progress === "number" ? m.progress : 0);
@@ -112,10 +118,6 @@ export async function runOcr(
   });
 
   try {
-    // Cast para "any": diferentes versoes do tesseract.js tem assinaturas de
-    // tipos levemente diferentes para o 3o argumento (outputFormats). Isso
-    // evita que uma divergencia de versao quebre o build por tipagem,
-    // mantendo o comportamento em tempo de execucao.
     const result = await (worker.recognize as any)(
       source,
       {},
