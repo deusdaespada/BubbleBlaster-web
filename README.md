@@ -83,9 +83,10 @@ historico. Se quiser guardar as paginas processadas:
 2. Vá em **SQL Editor** e rode o conteudo de `supabase/schema.sql` (cria a
    tabela `blasts`, o bucket de Storage `bubbleblaster` e as politicas de
    RLS - cada pessoa so ve e acessa os proprios arquivos).
-3. Em **Authentication > Providers**, confirme que o provider de Email
-   esta habilitado (vem habilitado por padrao). O login do site usa link
-   magico, sem senha.
+3. Em **Authentication > Providers**, o provider de Email ja vem habilitado
+   (login por email+senha). Se quiser tambem o botao "Continuar com Google",
+   habilite o provider Google ali e configure o OAuth client (veja a doc do
+   Supabase: Authentication > Providers > Google).
 4. Em **Project Settings > API**, copie a "Project URL" e a chave
    "anon public".
 5. Configure essas variaveis (no `.env.local` pra dev, e nas Environment
@@ -97,9 +98,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon
 NEXT_PUBLIC_SUPABASE_BUCKET=bubbleblaster
 ```
 
-6. Em **Authentication > URL Configuration**, adicione a URL do seu site
-   na Vercel (ex: `https://seu-app.vercel.app`) em "Redirect URLs", senao o
-   link magico de login nao volta pro site certo.
+6. **Passo critico** - em **Authentication > URL Configuration**:
+   - "Site URL": coloque a URL da sua Vercel (ex: `https://seu-app.vercel.app`)
+   - "Redirect URLs": adicione essa mesma URL
+   
+   Sem isso, qualquer fluxo de auth (reset de senha, confirmacao de email,
+   login com Google) redireciona pra um endereco antigo/local e a pagina
+   fica com "ERR_CONNECTION_REFUSED" - foi exatamente esse o erro visto
+   nos testes iniciais.
 
 ## Limitacoes e observacoes
 

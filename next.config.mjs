@@ -16,7 +16,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // Scripts: o proprio site + workers do jsDelivr + OpenCV CDN
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://docs.opencv.org",
+              "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://docs.opencv.org",
               // Workers precisam de blob: para o Web Worker do Tesseract
               "worker-src 'self' blob: https://cdn.jsdelivr.net",
               // WASM e arquivos de modelo de idioma
