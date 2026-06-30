@@ -106,15 +106,26 @@ export async function runOcr(
   //                (baixados sob demanda, ficam em cache no navegador)
   const worker = await (createWorker as any)(languageCode, 1, {
     workerPath:
-      "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
-    corePath:
-      "https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js",
+      "https://cdn.jsdelivr.net/npm/tesseract.js@v5.1.1/dist/worker.min.js",
+    // IMPORTANTE: corePath deve apontar para um DIRETORIO (nao um arquivo
+    // .wasm.js especifico) - o Tesseract.js escolhe automaticamente a
+    // variante certa (com/sem SIMD) pro navegador do usuario. Apontar pra
+    // um arquivo especifico e a causa mais comum do "Failed to fetch".
+    corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1",
     langPath: "https://tessdata.projectnaptha.com/4.0.0",
     logger: (m: any) => {
       if (onProgress && m?.status) {
         onProgress(m.status, typeof m.progress === "number" ? m.progress : 0);
       }
     },
+  }).catch((err: any) => {
+    // Relança com mais contexto: "Failed to fetch" sozinho nao diz qual
+    // arquivo falhou. Isso aparece no painel "erro" da imagem na fila.
+    throw new Error(
+      `Falha ao iniciar o OCR (worker/core/lang do Tesseract.js): ${
+        err?.message ?? err
+      }`
+    );
   });
 
   try {
