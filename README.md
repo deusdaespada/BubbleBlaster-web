@@ -107,6 +107,24 @@ NEXT_PUBLIC_SUPABASE_BUCKET=bubbleblaster
    fica com "ERR_CONNECTION_REFUSED" - foi exatamente esse o erro visto
    nos testes iniciais.
 
+## Diagnostico do "Failed to fetch" (resolvido)
+
+Esse erro apareceu de forma intermitente em testes pelo celular: o OCR
+funcionava no wifi e as vezes falhava nos dados moveis, mesmo sem nenhum
+bloqueador instalado. A causa era a CDN externa (`cdn.jsdelivr.net`) usada
+pelo Tesseract.js para baixar o motor (worker + WASM, alguns MB) - em redes
+de celular/operadoras instaveis, esse download as vezes falha.
+
+A solucao foi parar de depender de uma CDN externa pra esses arquivos
+pesados: agora `scripts/copy-tesseract-assets.js` roda automaticamente
+depois do `npm install` (tanto local quanto na Vercel) e copia o worker e
+o WASM do Tesseract.js de `node_modules` para `public/tesseract/`. Dali em
+diante, o navegador baixa esses arquivos do MESMO dominio do site (servido
+pela CDN da Vercel), e so os arquivos de idioma (.traineddata, mais leves)
+continuam vindo de fora. Se por algum motivo os arquivos locais nao
+existirem (ex: build muito antigo), o codigo cai automaticamente pro CDN
+externo como segunda tentativa.
+
 ## Limitacoes e observacoes
 
 - **OCR**: Tesseract.js e mais leve que o EasyOCR, mas pode ser um pouco
