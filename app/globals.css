@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background-color: #15130f;
+  color: #e7e4da;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.panel-frame {
+  border: 3px solid #15130f;
+  box-shadow:
+    0 0 0 1px rgba(231, 228, 218, 0.08),
+    6px 6px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+.halftone-surface {
+  background-color: #1e1b16;
+  background-image: radial-gradient(
+    circle,
+    rgba(231, 228, 218, 0.12) 1px,
+    transparent 1.4px
+  );
+  background-size: 9px 9px;
+}
+
+.stamp-press {
+  animation: stamp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+@keyframes stamp {
+  0% {
+    transform: scale(1.4) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.95) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-press {
+    animation: none;
+  }
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #2a2620;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e2402b;
+  border: 2px solid #15130f;
+  cursor: pointer;
+  margin-top: -1px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e2402b;
+  border: 2px solid #15130f;
+  cursor: pointer;
+}
+
+::selection {
+  background: #e2402b;
+  color: #15130f;
+}
+
+:focus-visible {
+  outline: 2px solid #3fa9a0;
+  outline-offset: 2px;
+}
